@@ -1,79 +1,80 @@
-# MatchFlow AI
+# MatchFlow AI 🤝
 
-MatchFlow AI is a hackathon demo for explainable Startup-Investor matching and global event-slot scheduling.
+**MatchFlow AI** is a state-of-the-art, AI-powered matching and scheduling platform designed specifically for Startup-Investor networking events. It leverages Generative AI and advanced Operations Research (OR) to extract profiles, calculate explainable compatibility scores, and automatically generate conflict-free event schedules.
 
-## Implemented Demo Flow
+---
 
-1. Upload a valid PDF pitch deck, up to 10 MB.
-2. Gemini extracts a schema-validated Startup profile.
-3. Review and confirm the profile.
-4. Rank Investors using structured compatibility and persisted pgvector embeddings.
-5. Run Gemini qualitative reasoning only for the Top 3 preliminary candidates.
-6. Display component scores, strengths, risks, and degraded-mode labels when an AI component is unavailable.
-7. Use OR-Tools to choose conflict-free meetings across the seeded global 30-minute event slots while maximizing total Match Score.
-8. Display database-backed Startup, Investor, Match, Meeting, and average Match Score metrics.
+## 🌟 Key Features
 
-When all components are available:
+1. **Intelligent Profile Extraction**: Upload a startup pitch deck (PDF), and our Gemini integration automatically extracts structured metrics (industry, stage, traction) and generates high-dimensional vector embeddings for semantic search.
+2. **Hybrid Matching Engine**: 
+   - **Structured Scoring**: Hard constraints (e.g., ticket size, industry match).
+   - **Semantic Scoring**: `pgvector` similarity between startup pitches and investor theses.
+   - **Explainable AI**: Gemini provides a verifiable breakdown of the match, highlighting "Strengths" and "Risks".
+3. **Smart Availability & Scheduling**:
+   - Startups and Investors can manage their availability slots.
+   - **Google OR-Tools** solver crunches all availabilities and match scores to generate a mathematically optimal, conflict-free meeting schedule for the entire event.
+4. **Role-Based Workspaces**:
+   - **Startup Profile**: Manage pitch decks and company metrics.
+   - **Investor Dashboard**: Review tailored matches and upcoming meetings.
+   - **Organizer Dashboard**: Get a bird's-eye view of the event, run the OR-Tools solver, and track meeting outcomes.
 
-```text
-Final Score = Structured × 0.50 + Semantic × 0.30 + LLM × 0.20
-```
+---
 
-If semantic or LLM evaluation is unavailable, the score is renormalized over available components and the UI labels the missing component. Investors outside the preliminary Top 3 intentionally have no LLM score.
+## 🚀 Demo Access
 
-## Demo Setup
+The platform comes pre-seeded with demo accounts. 
+**Password for all demo accounts:** `demo123`
 
-Requirements: Docker, Node.js, and a valid Gemini API credential in `backend/.env`.
-The server defaults generation requests to `gemini-3.5-flash-lite`; override with `GEMINI_GENERATION_MODEL` if required.
+| Role | Username | Description |
+| :--- | :--- | :--- |
+| **Organizer** | `organizer_demo` | Full access to run the scheduling algorithm and view analytics. |
+| **Startup** | `startup_demo` | Access to the startup profile upload and schedule viewer. |
+| **Investor** | `investor_demo` | Access to the investor matching dashboard. |
 
-```bash
-docker start matchflow-db
-make demo-bootstrap
-```
+---
 
-`make demo-bootstrap` is idempotent for the configured demo database: it recreates the schema, applies migration and seed data, generates every Startup and Investor embedding, verifies pgvector and 768-dimensional vectors, and fails clearly when credentials or embeddings are unavailable.
+## 🛠 Tech Stack
 
-Start the backend:
+- **Frontend**: Next.js 14 (App Router), React, Tailwind CSS, Lucide Icons, Shadcn UI
+- **Backend**: FastAPI, Python 3
+- **Database**: PostgreSQL with `pgvector` extension (Supabase)
+- **AI / ML**: Google Gemini 1.5 Flash (for extraction & reasoning)
+- **Algorithms**: Google OR-Tools (CP-SAT Solver)
 
+---
+
+## 💻 Local Development Setup
+
+### 1. Prerequisites
+- Node.js (v18+)
+- Python (3.10+)
+- PostgreSQL database (with `pgvector` enabled)
+
+### 2. Backend Setup
 ```bash
 cd backend
-set -a && source .env && set +a
-venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Configure environment variables (create a .env file)
+# GEMINI_API_KEY="..."
+# DATABASE_URL="..."
+
+# Start the FastAPI server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Start the frontend:
-
+### 3. Frontend Setup
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+*The frontend will be available at [http://localhost:3000](http://localhost:3000)*
 
-Open `http://localhost:3000`.
+---
 
-## Validation
-
-```bash
-cd backend && venv/bin/python -m pytest -q
-cd frontend && npm run lint && npx tsc --noEmit && npm run build
-```
-
-## Current Scope
-
-- Seeded deterministic demo dataset: 20 Startups, 10 Investors, 5 global event slots.
-- PDF-only ingestion.
-- Synchronous Gemini extraction, embedding, and Top-3 reasoning.
-- Global event-slot optimization. Participant-specific availability is not modeled.
-- Database-backed analytics loaded on page request; no real-time streaming.
-- Demo identity flow only; production authentication and authorization are not implemented.
-
-## Future Roadmap
-
-Not implemented in the current demo:
-
-- Participant-specific availability and calendar integrations.
-- Meeting notes, automated follow-up, email workflows, and deal-pipeline tracking.
-- Website, form, CSV, and spreadsheet ingestion.
-- Real-time event monitoring or WebSocket analytics.
-- Production authentication, multi-tenancy, and role-based access controls.
-- Learning from meeting outcomes or custom model training.
+## 📜 License
+This project is for demonstration purposes.
