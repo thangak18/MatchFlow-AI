@@ -11,13 +11,17 @@ import {
   BarChart3,
   LogOut,
   Sparkles,
+  CalendarDays,
+  CalendarClock,
+  LineChart,
 } from "lucide-react";
 
 const navItems = [
   { name: "Dashboard", href: "/organizer/dashboard", icon: LayoutDashboard },
   { name: "Startups", href: "/startup/profile", icon: Briefcase },
   { name: "Matches", href: "/matches", icon: Users },
-  { name: "Schedule", href: "/organizer/schedule", icon: Calendar },
+  { name: "Schedule", href: "/organizer/schedule", icon: CalendarDays },
+  { name: "Availability", href: "/organizer/availability", icon: CalendarClock },
 ];
 
 export function Sidebar() {

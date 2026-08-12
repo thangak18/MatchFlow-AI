@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, ForeignKey, Numeric, String, Text, func
+from sqlalchemy import Column, DateTime, ForeignKey, Numeric, String, Text, func, Boolean
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import declarative_base, relationship
 from pgvector.sqlalchemy import Vector
@@ -96,4 +96,29 @@ class Meeting(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid(), default=uuid.uuid4)
     match_id = Column(UUID(as_uuid=True), ForeignKey('matches.id', ondelete='CASCADE'))
     slot_id = Column(UUID(as_uuid=True), ForeignKey('availability_slots.id', ondelete='CASCADE'))
+    
+    # Outcome Tracking
+    status = Column(String(50), default="scheduled")
+    outcome = Column(String(50))
+    notes = Column(Text)
+    next_step = Column(String(255))
+    follow_up_date = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class StartupAvailability(Base):
+    __tablename__ = 'startup_availability'
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid(), default=uuid.uuid4)
+    startup_id = Column(UUID(as_uuid=True), ForeignKey('startups.id', ondelete='CASCADE'))
+    time_slot_id = Column(UUID(as_uuid=True), ForeignKey('availability_slots.id', ondelete='CASCADE'))
+    is_available = Column(Boolean, default=True) # SQLite/Postgres boolean can be tricky, let's use boolean
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class InvestorAvailability(Base):
+    __tablename__ = 'investor_availability'
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid(), default=uuid.uuid4)
+    investor_id = Column(UUID(as_uuid=True), ForeignKey('investors.id', ondelete='CASCADE'))
+    time_slot_id = Column(UUID(as_uuid=True), ForeignKey('availability_slots.id', ondelete='CASCADE'))
+    is_available = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

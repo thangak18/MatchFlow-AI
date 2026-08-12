@@ -7,7 +7,21 @@ import { LoadingState, ErrorState } from "@/components/shared/StateBlocks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function DashboardPage() {
-  type AnalyticsData = { total_startups: number; total_investors: number; active_matches: number; total_meetings: number; average_match_score: number };
+  type AnalyticsData = { 
+    total_startups: number; 
+    total_investors: number; 
+    active_matches: number; 
+    total_meetings: number; 
+    average_match_score: number;
+    completed_meetings: number;
+    positive_interest_rate: number;
+    outcomes: {
+      interested: number;
+      follow_ups_required: number;
+      deal_discussions: number;
+      not_a_fit: number;
+    }
+  };
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState("");
 
@@ -72,12 +86,48 @@ export default function DashboardPage() {
           value={data.total_meetings} 
           icon={<CalendarDays className="w-6 h-6" />}
         />
+        <MetricCard 
+          title="Positive Interest Rate" 
+          value={`${data.positive_interest_rate ?? 0}%`} 
+          icon={<Users className="w-6 h-6 text-primary" />}
+        />
       </div>
 
-      <Card className="border-border shadow-sm mb-8">
-        <CardHeader className="border-b border-border bg-secondary/30 pb-4">
-          <CardTitle className="text-lg">System Health</CardTitle>
-        </CardHeader>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card className="border-border shadow-sm">
+          <CardHeader className="border-b border-border bg-secondary/30 pb-4">
+            <CardTitle className="text-lg">Meeting Outcomes</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-foreground">Completed Meetings</span>
+                <span className="font-mono">{data.completed_meetings ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-emerald-500">Interested</span>
+                <span className="font-mono">{data.outcomes?.interested ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-amber-500">Follow-ups Required</span>
+                <span className="font-mono">{data.outcomes?.follow_ups_required ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-blue-500">Deal Discussions</span>
+                <span className="font-mono">{data.outcomes?.deal_discussions ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-slate-500">Not a Fit</span>
+                <span className="font-mono">{data.outcomes?.not_a_fit ?? 0}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border shadow-sm">
+          <CardHeader className="border-b border-border bg-secondary/30 pb-4">
+            <CardTitle className="text-lg">System Health</CardTitle>
+          </CardHeader>
         <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-4">AI Subsystems</h4>
@@ -111,6 +161,7 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

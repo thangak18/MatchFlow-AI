@@ -73,6 +73,7 @@ export default function MatchesPage() {
     const isMissingStartupId = error.includes("No startup ID found");
     return (
       <ErrorState 
+        title={isMissingStartupId ? "Action Required" : "Something went wrong"}
         error={error} 
         onRetry={() => {
           if (isMissingStartupId) {

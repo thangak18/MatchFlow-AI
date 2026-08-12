@@ -1,7 +1,14 @@
 from ortools.sat.python import cp_model
 from app.schemas.schemas import MatchResult
 
-def generate_schedule(matches: list[MatchResult], num_slots: int = 10, max_meetings_per_startup: int = 5, max_meetings_per_investor: int = 5):
+def generate_schedule(
+    matches: list[MatchResult], 
+    num_slots: int = 10, 
+    max_meetings_per_startup: int = 5, 
+    max_meetings_per_investor: int = 5,
+    startup_unavailability: set = None,
+    investor_unavailability: set = None
+):
     """
     Schedules meetings using OR-Tools CP-SAT solver.
     """
@@ -41,6 +48,17 @@ def generate_schedule(matches: list[MatchResult], num_slots: int = 10, max_meeti
     # 5. Max meetings per investor
     for i in investors:
         model.Add(sum(meeting_vars[(m.startup_id, i, t)] for m in matches if m.investor_id == i for t in range(num_slots)) <= max_meetings_per_investor)
+        
+    # 6. Participant availability constraint
+    startup_unavail = startup_unavailability or set()
+    investor_unavail = investor_unavailability or set()
+    
+    for match in matches:
+        s = match.startup_id
+        i = match.investor_id
+        for t in range(num_slots):
+            if (s, t) in startup_unavail or (i, t) in investor_unavail:
+                model.Add(meeting_vars[(s, i, t)] == 0)
         
     # Objective: Maximize total match score
     objective_terms = []

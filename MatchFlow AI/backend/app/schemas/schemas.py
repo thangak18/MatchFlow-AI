@@ -60,3 +60,28 @@ class MatchResult(BaseModel):
     risks: list[str]
     explanation: str = ""
     model_config = ConfigDict(from_attributes=True)
+
+class MeetingOutcomeUpdate(BaseModel):
+    outcome: str
+    notes: str | None = None
+    next_step: str | None = None
+    follow_up_date: str | None = None
+
+class MeetingSchema(BaseModel):
+    id: UUID
+    match_id: UUID
+    slot_id: UUID
+    status: str
+    outcome: str | None = None
+    notes: str | None = None
+    next_step: str | None = None
+    follow_up_date: str | None = None
+    completed_at: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+class SlotAvailability(BaseModel):
+    time_slot_id: UUID
+    available: bool
+
+class ParticipantAvailabilityUpdate(BaseModel):
+    slots: list[SlotAvailability]

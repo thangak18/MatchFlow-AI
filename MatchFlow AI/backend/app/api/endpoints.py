@@ -8,9 +8,9 @@ from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from pypdf import PdfReader
 
-from app.db.models import AvailabilitySlot, Investor, Match, Meeting, Startup, StartupProfile
+from app.db.models import AvailabilitySlot, Investor, Match, Meeting, Startup, StartupProfile, StartupAvailability, InvestorAvailability
 from app.db.session import get_db
-from app.schemas.schemas import InvestorSchema, StartupProfileSchema, StartupSchema, MatchResult, InvestorProfileSchema
+from app.schemas.schemas import InvestorSchema, StartupProfileSchema, StartupSchema, MatchResult, InvestorProfileSchema, ParticipantAvailabilityUpdate
 from app.services.ai_service import extract_startup_profile, generate_embedding
 from app.services.matching_service import calculate_hybrid_match
 from app.services.scheduling_service import generate_schedule
@@ -61,6 +61,40 @@ def update_startup_profile(startup_id: UUID, profile: StartupProfileSchema, db: 
     db.refresh(db_profile)
     return db_profile
 
+@router.get("/startups/{startup_id}/availability")
+def get_startup_availability(startup_id: UUID, db: Session = Depends(get_db)):
+    slots = db.query(AvailabilitySlot).order_by(AvailabilitySlot.start_time).all()
+    availability = db.query(StartupAvailability).filter(StartupAvailability.startup_id == startup_id).all()
+    avail_map = {a.time_slot_id: a.is_available for a in availability}
+    
+    result = []
+    for slot in slots:
+        result.append({
+            "time_slot_id": str(slot.id),
+            "start_time": slot.start_time,
+            "end_time": slot.end_time,
+            "available": avail_map.get(slot.id, True) # Default True if no record
+        })
+    return {"status": "success", "availability": result}
+
+@router.put("/startups/{startup_id}/availability")
+def update_startup_availability(startup_id: UUID, update_data: ParticipantAvailabilityUpdate, db: Session = Depends(get_db)):
+    for slot_data in update_data.slots:
+        avail = db.query(StartupAvailability).filter(
+            StartupAvailability.startup_id == startup_id,
+            StartupAvailability.time_slot_id == slot_data.time_slot_id
+        ).first()
+        if avail:
+            avail.is_available = slot_data.available
+        else:
+            db.add(StartupAvailability(
+                startup_id=startup_id,
+                time_slot_id=slot_data.time_slot_id,
+                is_available=slot_data.available
+            ))
+    db.commit()
+    return {"status": "success"}
+
 @router.post("/startups/upload_pitch_deck", response_model=StartupProfileSchema)
 def upload_pitch_deck(file: UploadFile = File(...)):
     if file.content_type != "application/pdf" or not (file.filename or "").lower().endswith(".pdf"):
@@ -101,6 +135,40 @@ def get_investor(investor_id: UUID, db: Session = Depends(get_db)):
     if not investor:
         raise HTTPException(status_code=404, detail="Investor not found")
     return investor
+
+@router.get("/investors/{investor_id}/availability")
+def get_investor_availability(investor_id: UUID, db: Session = Depends(get_db)):
+    slots = db.query(AvailabilitySlot).order_by(AvailabilitySlot.start_time).all()
+    availability = db.query(InvestorAvailability).filter(InvestorAvailability.investor_id == investor_id).all()
+    avail_map = {a.time_slot_id: a.is_available for a in availability}
+    
+    result = []
+    for slot in slots:
+        result.append({
+            "time_slot_id": str(slot.id),
+            "start_time": slot.start_time,
+            "end_time": slot.end_time,
+            "available": avail_map.get(slot.id, True) # Default True if no record
+        })
+    return {"status": "success", "availability": result}
+
+@router.put("/investors/{investor_id}/availability")
+def update_investor_availability(investor_id: UUID, update_data: ParticipantAvailabilityUpdate, db: Session = Depends(get_db)):
+    for slot_data in update_data.slots:
+        avail = db.query(InvestorAvailability).filter(
+            InvestorAvailability.investor_id == investor_id,
+            InvestorAvailability.time_slot_id == slot_data.time_slot_id
+        ).first()
+        if avail:
+            avail.is_available = slot_data.available
+        else:
+            db.add(InvestorAvailability(
+                investor_id=investor_id,
+                time_slot_id=slot_data.time_slot_id,
+                is_available=slot_data.available
+            ))
+    db.commit()
+    return {"status": "success"}
 
 @router.post("/startups/{startup_id}/match", response_model=List[MatchResult])
 def generate_matches(startup_id: UUID, db: Session = Depends(get_db)):
@@ -207,14 +275,87 @@ def create_schedule(db: Session = Depends(get_db)):
     slots = db.query(AvailabilitySlot).order_by(AvailabilitySlot.start_time).all()
     if not slots:
         raise HTTPException(status_code=409, detail="No event time slots configured.")
-    schedule = generate_schedule(all_matches, num_slots=len(slots), max_meetings_per_startup=3, max_meetings_per_investor=5)
+    slot_index_map = {s.id: idx for idx, s in enumerate(slots)}
+    
+    # Fetch availability rules
+    startup_unavail = set()
+    investor_unavail = set()
+    
+    startup_avail_rows = db.query(StartupAvailability).all()
+    for row in startup_avail_rows:
+        if not row.is_available and row.time_slot_id in slot_index_map:
+            startup_unavail.add((row.startup_id, slot_index_map[row.time_slot_id]))
+            
+    investor_avail_rows = db.query(InvestorAvailability).all()
+    for row in investor_avail_rows:
+        if not row.is_available and row.time_slot_id in slot_index_map:
+            investor_unavail.add((row.investor_id, slot_index_map[row.time_slot_id]))
+
+    schedule = generate_schedule(
+        all_matches, 
+        num_slots=len(slots), 
+        max_meetings_per_startup=3, 
+        max_meetings_per_investor=5,
+        startup_unavailability=startup_unavail,
+        investor_unavailability=investor_unavail
+    )
     db.query(Meeting).delete()
+    meetings_to_return = []
     for item in schedule:
-        db.add(Meeting(match_id=item["match_id"], slot_id=slots[item["time_slot"]].id))
+        new_meeting = Meeting(match_id=item["match_id"], slot_id=slots[item["time_slot"]].id)
+        db.add(new_meeting)
+        db.flush()
+        item["meeting_id"] = str(new_meeting.id)
+        item["status"] = new_meeting.status
+        item["outcome"] = new_meeting.outcome
+        meetings_to_return.append(item)
     db.commit()
-    return {"status": "success", "schedule": schedule, "meetings_created": len(schedule),
-            "average_match_score": round(sum(item["match_score"] for item in schedule) / len(schedule), 2) if schedule else 0,
-            "objective_value": round(sum(item["match_score"] for item in schedule), 2)}
+    return {"status": "success", "schedule": meetings_to_return, "meetings_created": len(meetings_to_return),
+            "average_match_score": round(sum(item["match_score"] for item in meetings_to_return) / len(meetings_to_return), 2) if meetings_to_return else 0,
+            "objective_value": round(sum(item["match_score"] for item in meetings_to_return), 2)}
+
+@router.get("/schedule")
+def get_schedule(db: Session = Depends(get_db)):
+    meetings = db.query(Meeting).all()
+    slots = db.query(AvailabilitySlot).order_by(AvailabilitySlot.start_time).all()
+    slot_index_map = {s.id: idx for idx, s in enumerate(slots)}
+    
+    schedule = []
+    for m in meetings:
+        match = db.query(Match).filter(Match.id == m.match_id).first()
+        if not match: continue
+        schedule.append({
+            "meeting_id": str(m.id),
+            "startup_id": str(match.startup_id),
+            "investor_id": str(match.investor_id),
+            "time_slot": slot_index_map.get(m.slot_id, 0),
+            "match_score": float(match.final_score),
+            "status": m.status,
+            "outcome": m.outcome
+        })
+    return {"status": "success", "schedule": schedule}
+
+@router.patch("/meetings/{meeting_id}/outcome")
+def record_meeting_outcome(meeting_id: UUID, outcome_data: dict, db: Session = Depends(get_db)):
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+        
+    outcome = outcome_data.get("outcome")
+    valid_outcomes = ["interested", "follow_up", "deal_discussion", "not_fit"]
+    if outcome not in valid_outcomes:
+        raise HTTPException(status_code=400, detail="Invalid outcome value")
+        
+    meeting.outcome = outcome
+    meeting.status = "completed"
+    meeting.notes = outcome_data.get("notes")
+    meeting.next_step = outcome_data.get("next_step")
+    meeting.follow_up_date = outcome_data.get("follow_up_date")
+    meeting.completed_at = func.now()
+    
+    db.commit()
+    db.refresh(meeting)
+    return {"status": "success", "meeting_id": str(meeting.id), "outcome": meeting.outcome}
 
 @router.get("/analytics")
 def get_analytics(db: Session = Depends(get_db)):
@@ -223,11 +364,30 @@ def get_analytics(db: Session = Depends(get_db)):
     match_count = db.query(Match).count()
     meeting_count = db.query(Meeting).count()
     average = db.query(func.avg(Match.final_score)).scalar()
+    
+    # Outcome metrics
+    completed_meetings = db.query(Meeting).filter(Meeting.status == "completed").count()
+    follow_ups = db.query(Meeting).filter(Meeting.outcome == "follow_up").count()
+    deal_discussions = db.query(Meeting).filter(Meeting.outcome == "deal_discussion").count()
+    interested = db.query(Meeting).filter(Meeting.outcome == "interested").count()
+    not_fit = db.query(Meeting).filter(Meeting.outcome == "not_fit").count()
+    
+    positive_interest_count = interested + follow_ups + deal_discussions
+    positive_interest_rate = (positive_interest_count / completed_meetings * 100) if completed_meetings > 0 else 0.0
+
     return {
         "total_startups": startups_count,
         "total_investors": investors_count,
         "active_matches": match_count,
         "total_meetings": meeting_count,
         "average_match_score": round(float(average), 2) if average is not None else 0.0,
-        "system_status": "Healthy"
+        "system_status": "Healthy",
+        "completed_meetings": completed_meetings,
+        "positive_interest_rate": round(positive_interest_rate, 1),
+        "outcomes": {
+            "interested": interested,
+            "follow_ups_required": follow_ups,
+            "deal_discussions": deal_discussions,
+            "not_a_fit": not_fit
+        }
     }

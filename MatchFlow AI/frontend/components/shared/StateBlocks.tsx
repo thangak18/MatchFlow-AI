@@ -10,13 +10,13 @@ export function LoadingState({ message = "Loading..." }: { message?: string }) {
   );
 }
 
-export function ErrorState({ error, onRetry, retryLabel = "Try Again" }: { error: string; onRetry?: () => void; retryLabel?: string }) {
+export function ErrorState({ error, onRetry, retryLabel = "Try Again", title = "Something went wrong" }: { error: string; onRetry?: () => void; retryLabel?: string; title?: string }) {
   return (
     <div className="flex flex-col items-center justify-center p-12 text-center h-[50vh] min-h-[300px]">
       <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center mb-4">
         <AlertCircle className="w-6 h-6 text-danger" />
       </div>
-      <h3 className="text-lg font-semibold mb-2 text-foreground">Something went wrong</h3>
+      <h3 className="text-lg font-semibold mb-2 text-foreground">{title}</h3>
       <p className="text-muted-foreground max-w-md mb-6">{error}</p>
       {onRetry && (
         <Button onClick={onRetry} variant="outline">
