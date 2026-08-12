@@ -1,0 +1,25 @@
+- generic [active] [ref=f9e1]:
+  - button "Open Next.js Dev Tools" [ref=f9e8] [cursor=pointer]
+  - alert [ref=f9e12]
+  - generic [ref=f9e135]:
+    - button "← Back to Matches" [ref=f9e136]
+    - generic [ref=f9e137]:
+      - generic [ref=f9e138]:
+        - heading "ABC Ventures" [level=1] [ref=f9e139]
+        - paragraph [ref=f9e140]: Powered by MatchFlow Hybrid AI
+      - generic [ref=f9e141]: 57.5% Match
+    - generic [ref=f9e142]:
+      - generic [ref=f9e143]:
+        - heading "Positive Factors" [level=3] [ref=f9e144]
+        - list [ref=f9e145]:
+          - listitem [ref=f9e146]: No significant strengths highlighted.
+      - generic [ref=f9e147]:
+        - heading "Risk Factors" [level=3] [ref=f9e148]
+        - list [ref=f9e149]:
+          - listitem [ref=f9e150]: No significant risks identified.
+    - generic [ref=f9e151]:
+      - heading "Raw Score Breakdown" [level=3] [ref=f9e152]
+      - generic [ref=f9e153]:
+        - generic [ref=f9e154]: "Structured: %"
+        - generic [ref=f9e155]: "Semantic (pgvector): %"
+        - generic [ref=f9e156]: "AI Reasoning: %"
