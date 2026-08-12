@@ -23,13 +23,29 @@ export default function Home() {
           Extract profiles, rank explainable hybrid matches, and schedule conflict-free meetings automatically.
         </p>
         
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-          <Link href="/organizer/dashboard" className="w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+          <Link href="/signin" className="w-full sm:w-auto">
             <Button size="lg" className="w-full text-base h-14 px-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground border-none font-bold shadow-lg shadow-primary/20">
-              Launch MatchFlow
-              <ArrowRight className="w-5 h-5 ml-2" />
+              Sign In
             </Button>
           </Link>
+          <Link href="/signup" className="w-full sm:w-auto">
+            <Button size="lg" variant="outline" className="w-full text-base h-14 px-12 rounded-xl font-bold bg-background/50 hover:bg-secondary border-border">
+              Create Account
+            </Button>
+          </Link>
+        </div>
+        
+        <div className="mb-16 bg-secondary/30 p-4 rounded-xl inline-block text-left border border-border text-sm shadow-sm max-w-sm">
+          <div className="flex items-center gap-2 font-bold mb-2 text-foreground">
+            <ShieldCheck className="w-4 h-4 text-warning" />
+            Demo Access (Password: demo123)
+          </div>
+          <ul className="space-y-1 text-muted-foreground font-mono">
+            <li>• Startup: <span className="text-foreground">startup_demo</span></li>
+            <li>• Investor: <span className="text-foreground">investor_demo</span></li>
+            <li>• Organizer: <span className="text-foreground">organizer_demo</span></li>
+          </ul>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-4xl mx-auto">

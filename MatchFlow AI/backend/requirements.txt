@@ -11,3 +11,7 @@ python-multipart
 python-dotenv
 pgvector
 pypdf
+passlib
+argon2-cffi
+python-jose
+python-multipart

@@ -6,7 +6,7 @@ import { AppShell } from "./AppShell";
 export function ClientShellWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   
-  if (pathname === "/") {
+  if (pathname === "/" || pathname === "/signin" || pathname === "/signup") {
     return <>{children}</>;
   }
   

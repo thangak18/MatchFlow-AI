@@ -3,8 +3,11 @@
 import { Sidebar } from "./Sidebar";
 import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/useAuth";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  
   return (
     <div className="min-h-screen bg-background flex w-full">
       <Sidebar />
@@ -27,7 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="absolute top-1.5 right-2 w-2 h-2 bg-primary rounded-full border-2 border-surface"></span>
             </button>
             <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold cursor-pointer">
-              JD
+              {user ? user.username.substring(0, 2).toUpperCase() : "U"}
             </div>
           </div>
         </header>
