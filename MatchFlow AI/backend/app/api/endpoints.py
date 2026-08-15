@@ -8,7 +8,7 @@ from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from pypdf import PdfReader
 
-from app.db.models import AvailabilitySlot, Investor, Match, Meeting, Startup, StartupProfile, StartupAvailability, InvestorAvailability
+from app.db.models import AvailabilitySlot, Investor, Match, Meeting, Startup, StartupProfile, StartupAvailability, InvestorAvailability, InvestorProfile
 from app.db.session import get_db
 from app.schemas.schemas import InvestorSchema, StartupProfileSchema, StartupSchema, MatchResult, InvestorProfileSchema, ParticipantAvailabilityUpdate
 from app.services.ai_service import extract_startup_profile, generate_embedding
@@ -135,6 +135,21 @@ def get_investor(investor_id: UUID, db: Session = Depends(get_db)):
     if not investor:
         raise HTTPException(status_code=404, detail="Investor not found")
     return investor
+
+@router.put("/investors/{investor_id}/profile", response_model=InvestorProfileSchema)
+def update_investor_profile(investor_id: UUID, profile: InvestorProfileSchema, db: Session = Depends(get_db)):
+    db_profile = db.query(InvestorProfile).filter(InvestorProfile.investor_id == investor_id).first()
+    if not db_profile:
+        # Create a new profile if it doesn't exist
+        db_profile = InvestorProfile(investor_id=investor_id)
+        db.add(db_profile)
+    
+    for key, value in profile.model_dump(exclude_unset=True).items():
+        setattr(db_profile, key, value)
+    
+    db.commit()
+    db.refresh(db_profile)
+    return db_profile
 
 @router.get("/investors/{investor_id}/availability")
 def get_investor_availability(investor_id: UUID, db: Session = Depends(get_db)):

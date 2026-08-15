@@ -18,7 +18,8 @@ export function useAuth(requireAuth: boolean = true) {
     
     const checkAuth = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/auth/me", {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${API_URL}/api/auth/me`, {
           credentials: "include"
         });
         

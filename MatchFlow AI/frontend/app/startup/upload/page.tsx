@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { UploadCloud, FileText, Loader2, AlertCircle } from "lucide-react";
 
 export default function PitchDeckUpload() {
@@ -46,7 +45,8 @@ export default function PitchDeckUpload() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:8000/api/startups/upload_pitch_deck", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${API_URL}/api/startups/upload_pitch_deck`, {
         method: "POST",
         body: formData,
       });
@@ -67,83 +67,80 @@ export default function PitchDeckUpload() {
 
   return (
     <div className="max-w-2xl mx-auto mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold mb-2">Upload Pitch Deck</h1>
-        <p className="text-muted-foreground">
+      <div className="mb-10 text-center">
+        <h1 className="text-4xl font-black tracking-tight text-[#1C1917] mb-3">Upload Pitch Deck</h1>
+        <p className="text-slate-500 text-lg max-w-2xl mx-auto">
           Upload your PDF pitch deck and MatchFlow AI will automatically extract your company profile for investors.
         </p>
       </div>
 
-      {/* Progression Bar */}
-      <div className="flex items-center gap-2 mb-8">
-        <div className="flex-1 h-2 bg-primary rounded-full"></div>
-        <div className="flex-1 h-2 bg-secondary rounded-full"></div>
-        <div className="flex-1 h-2 bg-secondary rounded-full"></div>
-      </div>
-
-      <Card className="border-border shadow-sm">
-        <CardContent className="p-8">
-          <div
-            className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer ${
-              file ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-secondary/50"
-            }`}
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={handleFileChange}
-              ref={fileInputRef}
-              className="hidden"
-            />
-            
-            {file ? (
-              <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-primary" />
-                </div>
-                <p className="font-semibold text-foreground">{file.name}</p>
-                <p className="text-sm text-muted-foreground mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                <Button variant="link" onClick={(e) => { e.stopPropagation(); setFile(null); }} className="text-danger mt-2">
-                  Remove File
-                </Button>
+      <div className="bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-8 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+        <div
+          className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 cursor-pointer ${
+            file 
+              ? "border-amber-400 bg-amber-500/5" 
+              : "border-white/80 hover:border-amber-400 hover:bg-white/50"
+          }`}
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={handleFileChange}
+            ref={fileInputRef}
+            className="hidden"
+          />
+          
+          {file ? (
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4 shadow-sm border border-amber-200">
+                <FileText className="w-8 h-8 text-amber-600" />
               </div>
-            ) : (
-              <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4">
-                  <UploadCloud className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <p className="font-semibold text-foreground mb-1">Click or drag and drop to upload</p>
-                <p className="text-sm text-muted-foreground">PDF up to 10MB</p>
+              <p className="font-bold text-[#1C1917] text-lg">{file.name}</p>
+              <p className="text-sm text-slate-500 mt-1 font-medium">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+              <Button 
+                variant="ghost" 
+                onClick={(e) => { e.stopPropagation(); setFile(null); }} 
+                className="text-red-500 hover:bg-red-50 hover:text-red-600 mt-4 font-semibold"
+              >
+                Remove File
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+                <UploadCloud className="w-8 h-8 text-slate-400" />
               </div>
-            )}
-          </div>
-
-          {error && (
-            <div className="mt-6 p-4 bg-danger/10 text-danger rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
-              <p className="text-sm font-medium">{error}</p>
+              <p className="font-bold text-[#1C1917] text-lg mb-1">Click or drag and drop to upload</p>
+              <p className="text-sm text-slate-500 font-medium">PDF up to 10MB</p>
             </div>
           )}
+        </div>
 
-          <Button 
-            onClick={handleUpload} 
-            disabled={!file || loading} 
-            className="w-full mt-8 h-12 text-base font-semibold"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Analyzing with AI...
-              </>
-            ) : (
-              "Analyze with AI"
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+        {error && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-start gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+            <p className="text-sm font-semibold">{error}</p>
+          </div>
+        )}
+
+        <Button 
+          onClick={handleUpload} 
+          disabled={!file || loading} 
+          className="w-full mt-8 h-14 rounded-xl font-bold text-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-amber-500/25 transition-all text-white border-none"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Analyzing with AI...
+            </>
+          ) : (
+            "Analyze with AI"
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

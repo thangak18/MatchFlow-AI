@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,21 +15,47 @@ export default function StartupProfile() {
     business_model?: string; description?: string; company_name?: string;
   };
   const [profile, setProfile] = useState<StartupProfileData | null>(null);
+  const [isExisting, setIsExisting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
-    const data = localStorage.getItem("extractedProfile");
-    if (data) {
-      try {
-        setProfile(JSON.parse(data) as StartupProfileData);
-      } catch {
-        setError("Could not load extracted profile. Please upload again.");
+    const loadProfile = async () => {
+      const extractedData = localStorage.getItem("extractedProfile");
+      const startupId = localStorage.getItem("activeStartupId");
+
+      if (extractedData) {
+        try {
+          setProfile(JSON.parse(extractedData) as StartupProfileData);
+          setIsExisting(false);
+          return;
+        } catch {
+          setError("Could not load extracted profile. Please upload again.");
+        }
+      } 
+      
+      if (startupId) {
+        try {
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const res = await fetch(`${API_URL}/api/startups/${startupId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.profile) {
+              setProfile({ ...data.profile, company_name: data.company_name });
+              setIsExisting(true);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to load existing profile:", e);
+        }
       }
-    } else {
+      
       router.push("/startup/upload");
-    }
+    };
+    
+    loadProfile();
   }, [router]);
 
   const handleSave = async () => {
@@ -38,16 +63,34 @@ export default function StartupProfile() {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch("http://localhost:8000/api/startups/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profile)
-      });
-      if (!res.ok) throw new Error("Failed to register startup");
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const startupId = localStorage.getItem("activeStartupId");
       
-      const data = await res.json();
-      localStorage.setItem("activeStartupId", data.id);
-      router.push(`/matches?startupId=${data.id}`);
+      if (isExisting && startupId) {
+        const res = await fetch(`${API_URL}/api/startups/${startupId}/profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profile)
+        });
+        if (!res.ok) throw new Error("Failed to update profile");
+        
+        // Remove extractedProfile so next time it loads from db
+        localStorage.removeItem("extractedProfile");
+        router.push(`/matches?startupId=${startupId}`);
+      } else {
+        const res = await fetch(`${API_URL}/api/startups/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profile)
+        });
+        if (!res.ok) throw new Error("Failed to register startup");
+        
+        const data = await res.json();
+        localStorage.setItem("activeStartupId", data.id);
+        localStorage.removeItem("extractedProfile");
+        
+        router.push(`/matches?startupId=${data.id}`);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to save profile");
     } finally {
@@ -59,104 +102,115 @@ export default function StartupProfile() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">
-          <Sparkles className="w-3.5 h-3.5" />
+      <div className="mb-10 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 text-amber-600 text-xs font-bold mb-4 border border-amber-500/20 shadow-sm">
+          <Sparkles className="w-4 h-4" />
           <span>AI Extracted Profile</span>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Review Your Profile</h1>
-        <p className="text-muted-foreground text-lg">
+        <h1 className="text-4xl font-black tracking-tight text-[#1C1917] mb-3">Review Your Profile</h1>
+        <p className="text-slate-500 text-lg max-w-2xl mx-auto">
           Please review and adjust the data extracted by AI before we generate your investor matches.
         </p>
       </div>
 
-      <Card className="border-border shadow-sm mb-8">
-        <CardHeader className="bg-secondary/30 border-b border-border pb-4">
-          <CardTitle>Company Details</CardTitle>
-          <CardDescription>Core information about your startup</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
+      <div className="bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl overflow-hidden mb-10 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+        <div className="bg-white/50 border-b border-white/60 p-6 px-8 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-[#1C1917]">Company Details</h2>
+            <p className="text-sm text-slate-500 font-medium">Core information about your startup</p>
+          </div>
+        </div>
+        
+        <div className="p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div className="space-y-3">
-              <Label htmlFor="company_name">Company Name</Label>
+              <Label htmlFor="company_name" className="text-sm font-bold text-slate-700">Company Name</Label>
               <Input
                 id="company_name"
                 value={profile.company_name || ""}
                 onChange={(e) => setProfile({...profile, company_name: e.target.value})}
-                className="bg-background"
+                className="bg-white/60 border-white/80 focus-visible:ring-amber-500/50 h-12 rounded-xl px-4 shadow-inner"
               />
             </div>
             <div className="space-y-3">
-              <Label htmlFor="industry">Industry</Label>
+              <Label htmlFor="industry" className="text-sm font-bold text-slate-700">Industry</Label>
               <Input
                 id="industry"
                 value={profile.industry || ""}
                 onChange={(e) => setProfile({...profile, industry: e.target.value})}
-                className="bg-background"
+                className="bg-white/60 border-white/80 focus-visible:ring-amber-500/50 h-12 rounded-xl px-4 shadow-inner"
               />
             </div>
             <div className="space-y-3">
-              <Label htmlFor="stage">Funding Stage</Label>
+              <Label htmlFor="stage" className="text-sm font-bold text-slate-700">Funding Stage</Label>
               <Input
                 id="stage"
                 value={profile.stage || ""}
                 onChange={(e) => setProfile({...profile, stage: e.target.value})}
-                className="bg-background"
+                className="bg-white/60 border-white/80 focus-visible:ring-amber-500/50 h-12 rounded-xl px-4 shadow-inner"
               />
             </div>
             <div className="space-y-3">
-              <Label htmlFor="funding_requirement">Funding Requirement ($)</Label>
+              <Label htmlFor="funding_requirement" className="text-sm font-bold text-slate-700">Funding Requirement ($)</Label>
               <Input
                 id="funding_requirement"
                 type="number"
                 value={profile.funding_requirement || ""}
                 onChange={(e) => setProfile({...profile, funding_requirement: parseFloat(e.target.value) || undefined})}
-                className="bg-background"
+                className="bg-white/60 border-white/80 focus-visible:ring-amber-500/50 h-12 rounded-xl px-4 shadow-inner"
               />
             </div>
             <div className="space-y-3 md:col-span-2">
-              <Label htmlFor="business_model">Business Model</Label>
+              <Label htmlFor="business_model" className="text-sm font-bold text-slate-700">Business Model</Label>
               <Input
                 id="business_model"
                 value={profile.business_model || ""}
                 onChange={(e) => setProfile({...profile, business_model: e.target.value})}
-                className="bg-background"
+                className="bg-white/60 border-white/80 focus-visible:ring-amber-500/50 h-12 rounded-xl px-4 shadow-inner"
               />
             </div>
           </div>
 
           <div className="space-y-3">
-            <Label htmlFor="description">Company Description</Label>
+            <Label htmlFor="description" className="text-sm font-bold text-slate-700">Company Description</Label>
             <Textarea
               id="description"
-              className="h-40 bg-background resize-y"
+              className="h-40 bg-white/60 border-white/80 focus-visible:ring-amber-500/50 rounded-xl p-4 shadow-inner resize-y leading-relaxed"
               value={profile.description || ""}
               onChange={(e) => setProfile({...profile, description: e.target.value})}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-danger/10 text-danger rounded-lg flex items-start gap-3">
+        <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-start gap-3 shadow-sm">
           <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
+          <p className="text-sm font-semibold">{error}</p>
         </div>
       )}
 
       <div className="flex justify-end gap-4 mb-16">
-        <Button variant="outline" onClick={() => router.push("/startup/upload")} className="h-12 px-6">
+        <Button 
+          variant="outline" 
+          onClick={() => router.push("/startup/upload")} 
+          className="h-14 px-8 rounded-xl font-bold bg-white/60 border border-white/80 hover:bg-white/80 text-slate-700 shadow-sm transition-all"
+        >
           Re-upload Deck
         </Button>
-        <Button onClick={handleSave} disabled={saving} className="h-12 px-8 text-base font-semibold shadow-md">
+        <Button 
+          onClick={handleSave} 
+          disabled={saving} 
+          className="h-14 px-10 rounded-xl font-bold text-lg bg-[#1C1917] hover:bg-black text-white shadow-xl hover:shadow-2xl transition-all border-none"
+        >
           {saving ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               Saving...
             </>
           ) : (
             <>
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-5 h-5 mr-2" />
               Confirm & Find Matches
             </>
           )}

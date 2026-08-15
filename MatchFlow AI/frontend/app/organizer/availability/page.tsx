@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CalendarClock, Building2, Users } from "lucide-react";
 import { ErrorState, EmptyState } from "@/components/shared/StateBlocks";
 
@@ -22,9 +21,10 @@ export default function AvailabilityPage() {
   useEffect(() => {
     const fetchParticipants = async () => {
       try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const [startupsRes, investorsRes] = await Promise.all([
-          fetch("http://localhost:8000/api/startups"),
-          fetch("http://localhost:8000/api/investors")
+          fetch(`${API_URL}/api/startups`),
+          fetch(`${API_URL}/api/investors`)
         ]);
         
         if (!startupsRes.ok || !investorsRes.ok) throw new Error("Failed to fetch participants");
@@ -53,9 +53,10 @@ export default function AvailabilityPage() {
     setSelectedId(id);
     setLoadingAvailability(true);
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const endpoint = type === "startup" 
-        ? `http://localhost:8000/api/startups/${id}/availability`
-        : `http://localhost:8000/api/investors/${id}/availability`;
+        ? `${API_URL}/api/startups/${id}/availability`
+        : `${API_URL}/api/investors/${id}/availability`;
         
       const res = await fetch(endpoint);
       if (!res.ok) throw new Error("Failed to fetch availability");
@@ -84,9 +85,10 @@ export default function AvailabilityPage() {
     
     setIsSaving(true);
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const endpoint = participant.type === "startup" 
-        ? `http://localhost:8000/api/startups/${selectedId}/availability`
-        : `http://localhost:8000/api/investors/${selectedId}/availability`;
+        ? `${API_URL}/api/startups/${selectedId}/availability`
+        : `${API_URL}/api/investors/${selectedId}/availability`;
         
       const payload = {
         slots: availability.map(s => ({ time_slot_id: s.time_slot_id, available: s.available }))
@@ -110,7 +112,7 @@ export default function AvailabilityPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center p-24"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+    return <div className="flex justify-center p-24"><Loader2 className="w-10 h-10 animate-spin text-amber-500" /></div>;
   }
   
   if (error) {
@@ -120,103 +122,116 @@ export default function AvailabilityPage() {
   const selectedParticipant = participants.find(p => p.id === selectedId);
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">
-          <CalendarClock className="w-3.5 h-3.5" />
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
+      <div className="mb-10 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 text-amber-600 text-xs font-bold mb-4 border border-amber-500/20 shadow-sm">
+          <CalendarClock className="w-4 h-4" />
           <span>Organizer Dashboard</span>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Participant Availability</h1>
-        <p className="text-muted-foreground text-lg max-w-2xl">
+        <h1 className="text-4xl font-black tracking-tight text-[#1C1917] mb-3">Participant Availability</h1>
+        <p className="text-slate-500 text-lg max-w-2xl mx-auto">
           Configure which time slots startups and investors are available to meet.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <Card className="col-span-1 shadow-sm border-border h-[calc(100vh-250px)] flex flex-col">
-          <CardHeader className="border-b border-border bg-secondary/30 pb-4">
-            <CardTitle className="text-lg">Select Participant</CardTitle>
-          </CardHeader>
-          <div className="flex-1 overflow-auto p-2 space-y-1">
-            <div className="px-3 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">Startups</div>
+        {/* Participants Sidebar Panel */}
+        <div className="col-span-1 bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl overflow-hidden flex flex-col h-[calc(100vh-250px)]">
+          <div className="bg-white/50 border-b border-white/60 p-5 px-6">
+            <h2 className="text-lg font-bold text-[#1C1917]">Select Participant</h2>
+          </div>
+          <div className="flex-1 overflow-auto p-4 space-y-2">
+            <div className="px-3 py-2 text-xs font-black text-slate-400 uppercase tracking-widest">Startups</div>
             {participants.filter(p => p.type === "startup").map(p => (
               <button
                 key={p.id}
                 onClick={() => selectParticipant(p.id, p.type)}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors ${
-                  selectedId === p.id ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-secondary/50 text-foreground'
+                className={`w-full text-left px-4 py-3 rounded-xl text-sm flex items-center gap-3 transition-all font-semibold ${
+                  selectedId === p.id 
+                    ? 'bg-amber-500 text-white shadow-md' 
+                    : 'hover:bg-white/60 text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Building2 className="w-4 h-4" />
+                <Building2 className={`w-5 h-5 ${selectedId === p.id ? 'text-amber-100' : 'text-slate-400'}`} />
                 {p.name}
               </button>
             ))}
             
-            <div className="px-3 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider mt-4">Investors</div>
+            <div className="px-3 py-2 text-xs font-black text-slate-400 uppercase tracking-widest mt-6">Investors</div>
             {participants.filter(p => p.type === "investor").map(p => (
               <button
                 key={p.id}
                 onClick={() => selectParticipant(p.id, p.type)}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors ${
-                  selectedId === p.id ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-secondary/50 text-foreground'
+                className={`w-full text-left px-4 py-3 rounded-xl text-sm flex items-center gap-3 transition-all font-semibold ${
+                  selectedId === p.id 
+                    ? 'bg-amber-500 text-white shadow-md' 
+                    : 'hover:bg-white/60 text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Users className="w-4 h-4" />
+                <Users className={`w-5 h-5 ${selectedId === p.id ? 'text-amber-100' : 'text-slate-400'}`} />
                 {p.name}
               </button>
             ))}
           </div>
-        </Card>
+        </div>
 
-        <Card className="col-span-1 md:col-span-2 shadow-sm border-border h-[calc(100vh-250px)] flex flex-col">
-          <CardHeader className="border-b border-border bg-secondary/30 pb-4 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">
+        {/* Availability Grid Panel */}
+        <div className="col-span-1 md:col-span-2 bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl overflow-hidden flex flex-col h-[calc(100vh-250px)]">
+          <div className="bg-white/50 border-b border-white/60 p-5 px-8 flex flex-row items-center justify-between">
+            <h2 className="text-xl font-bold text-[#1C1917]">
               {selectedParticipant ? `${selectedParticipant.name} - Availability` : 'Select a participant'}
-            </CardTitle>
+            </h2>
             {selectedParticipant && (
-              <Button onClick={saveAvailability} disabled={isSaving} size="sm">
+              <Button 
+                onClick={saveAvailability} 
+                disabled={isSaving} 
+                className="h-10 px-6 rounded-xl font-bold bg-[#1C1917] hover:bg-black text-white shadow-lg border-none"
+              >
                 {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Save Changes
               </Button>
             )}
-          </CardHeader>
+          </div>
           
-          <CardContent className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-auto p-8">
             {!selectedParticipant ? (
               <EmptyState 
                 title="No Participant Selected" 
                 description="Choose a startup or investor from the list to configure their availability." 
               />
             ) : loadingAvailability ? (
-              <div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+              <div className="flex justify-center p-12"><Loader2 className="w-10 h-10 animate-spin text-amber-500" /></div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {availability.map((slot, idx) => {
                   const startTime = new Date(slot.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  const endTime = new Date(slot.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                   
                   return (
                     <div 
                       key={slot.time_slot_id} 
-                      className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                        slot.available ? 'border-success/30 bg-success/5' : 'border-border bg-secondary/20 opacity-60'
+                      className={`flex items-center justify-between p-5 rounded-2xl border transition-all ${
+                        slot.available 
+                          ? 'border-emerald-200 bg-emerald-50/50 shadow-sm' 
+                          : 'border-white/80 bg-white/40 opacity-70'
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="font-mono font-medium text-lg w-32">
-                          {startTime}
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${
+                          slot.available ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {idx + 1}
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          Slot {idx + 1}
+                        <div className="font-mono font-bold text-lg text-slate-800">
+                          {startTime}
                         </div>
                       </div>
                       
                       <button
                         onClick={() => toggleSlot(slot.time_slot_id)}
-                        className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm ${
                           slot.available 
-                            ? 'bg-success text-success-foreground' 
-                            : 'bg-muted text-muted-foreground'
+                            ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20' 
+                            : 'bg-white text-slate-500 hover:text-slate-700 border border-slate-200 hover:border-slate-300'
                         }`}
                       >
                         {slot.available ? 'Available ✓' : 'Unavailable ✗'}
@@ -226,8 +241,8 @@ export default function AvailabilityPage() {
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

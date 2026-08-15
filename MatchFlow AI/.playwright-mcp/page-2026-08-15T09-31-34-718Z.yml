@@ -1,0 +1,37 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e48] [cursor=pointer]
+  - alert [ref=e52]
+  - generic [ref=e53]:
+    - complementary [ref=e54]:
+      - generic [ref=e55]: MatchFlow AI
+      - navigation [ref=e61]:
+        - link "My Dashboard" [ref=e62] [cursor=pointer]:
+          - /url: /investor/dashboard
+        - link "My Profile" [ref=e68] [cursor=pointer]:
+          - /url: /investor/profile
+        - link "Schedule" [ref=e72] [cursor=pointer]:
+          - /url: /investor/schedule
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - paragraph [ref=e77]: investor_demo
+          - paragraph [ref=e78]: investor
+        - button "Log Out" [ref=e79]
+    - generic [ref=e83]:
+      - banner [ref=e84]:
+        - searchbox "Search startups or investors..." [ref=e90]
+        - generic [ref=e91]:
+          - button [ref=e92]
+          - generic [ref=e97] [cursor=pointer]: IN
+      - main [ref=e98]:
+        - generic [ref=e100]:
+          - generic [ref=e102]:
+            - generic [ref=e103]: Investor Portal
+            - heading "Welcome, investor_demo" [level=1] [ref=e108]
+            - paragraph [ref=e109]: View your investment matches and portfolio opportunities.
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - heading "Your Matches" [level=2] [ref=e119]
+              - paragraph [ref=e120]: The MatchFlow AI engine is actively searching for startups matching your thesis.
+            - generic [ref=e122]:
+              - heading "Awaiting AI Matches" [level=3] [ref=e127]
+              - paragraph [ref=e128]: Match notifications will appear here. The Organizer manages the global schedule. Sit back while we find your next unicorn!
