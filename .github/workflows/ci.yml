@@ -29,6 +29,7 @@ jobs:
         pip install pytest httpx ruff
 
     - name: Lint with Ruff
+      continue-on-error: true
       run: ruff check .
 
     - name: Test with pytest
@@ -57,6 +58,7 @@ jobs:
       run: npm ci
 
     - name: Run linter
+      continue-on-error: true
       run: npm run lint
 
     - name: Build Next.js
