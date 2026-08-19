@@ -1,0 +1,63 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  PROJECT_ID: 'crisisops-1783794010'
+  REGION: 'us-central1'
+  BACKEND_SERVICE: 'matchflow-backend'
+  FRONTEND_SERVICE: 'matchflow-frontend'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    # Add "id-token" with the intended permissions.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Google Auth
+      id: auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+        service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Deploy Backend to Cloud Run
+      run: |
+        gcloud run deploy ${{ env.BACKEND_SERVICE }} \
+          --source "./MatchFlow AI/backend" \
+          --region ${{ env.REGION }} \
+          --project ${{ env.PROJECT_ID }} \
+          --allow-unauthenticated \
+          --quiet
+
+    - name: Get Backend URL
+      id: get-backend-url
+      run: |
+        BACKEND_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE }} \
+          --platform managed \
+          --region ${{ env.REGION }} \
+          --format 'value(status.url)')
+        echo "BACKEND_URL=${BACKEND_URL}" >> $GITHUB_ENV
+
+    - name: Deploy Frontend to Cloud Run
+      run: |
+        gcloud run deploy ${{ env.FRONTEND_SERVICE }} \
+          --source "./MatchFlow AI/frontend" \
+          --region ${{ env.REGION }} \
+          --project ${{ env.PROJECT_ID }} \
+          --allow-unauthenticated \
+          --set-env-vars NEXT_PUBLIC_API_URL=${{ env.BACKEND_URL }} \
+          --set-build-env-vars NEXT_PUBLIC_API_URL=${{ env.BACKEND_URL }} \
+          --quiet
